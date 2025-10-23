@@ -87,7 +87,7 @@
                 scope: "name email", // Request name and email
                 redirectURI: REDIRECT_URI,
                 state: "your_csrf_token_here", // Use a randomly generated string for CSRF protection
-                usePopup: true, // Recommended for a smoother user experience
+                usePopup: false, // Recommended for a smoother user experience
             });
 
             // 2. Event Listener for Apple's official button (if you want to trigger it manually or if `usePopup: false`)
