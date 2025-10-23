@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Sign in with Apple (Tailwind CSS)</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script
+            type="text/javascript"
+            src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"
+        ></script>
+        <style>
+            /* Optional: Basic styling to center the button */
+            body {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                background-color: #f3f4f6; /* Tailwind gray-100 */
+            }
+            /* Style for the Apple button if you're NOT using their div,
+           or to override some styles.
+           For the official button look, let Apple's CSS handle it as much as possible. */
+            .apple-login-button {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                height: 44px; /* Standard button height */
+                padding: 0 16px;
+                border-radius: 12px;
+                font-size: 17px;
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    Helvetica, Arial, sans-serif;
+                font-weight: 600;
+                cursor: pointer;
+                transition: background-color 0.2s ease-in-out;
+                border: 1px solid transparent; /* default */
+            }
+            .apple-login-button.black {
+                background-color: #000;
+                color: #fff;
+            }
+            .apple-login-button.black:hover {
+                background-color: #333;
+            }
+            .apple-login-button.white {
+                background-color: #fff;
+                color: #000;
+                border-color: #000;
+            }
+            .apple-login-button.white:hover {
+                background-color: #eee;
+            }
+            .apple-login-button .apple-icon {
+                margin-right: 8px;
+                width: 18px; /* Adjust icon size as needed */
+                height: 18px;
+            }
+        </style>
+    </head>
+    <body class="font-sans antialiased text-gray-900 bg-gray-100">
+        <div
+            class="p-8 bg-white rounded-lg shadow-xl max-w-sm w-full text-center"
+        >
+            <h1 class="text-2xl font-bold mb-6">Login to My App</h1>
+
+            <div
+                id="appleid-signin"
+                data-color="black"
+                data-border="true"
+                data-type="sign-in"
+                class="mx-auto"
+                style="width: 200px; height: 44px"
+            ></div>
+        </div>
+
+        <script type="text/javascript">
+            // Replace with your actual client ID and redirect URI
+            const CLIENT_ID = "com.aisalescoach.auth";
+            const REDIRECT_URI =
+                "https://coach.cbhexp.com/api/security/apple/callback"; // e.g., 'https://your-domain.com/auth/apple/callback'
+
+            // 1. Initialize Apple Auth
+            AppleID.auth.init({
+                clientId: CLIENT_ID,
+                scope: "name email", // Request name and email
+                redirectURI: REDIRECT_URI,
+                state: "your_csrf_token_here", // Use a randomly generated string for CSRF protection
+                usePopup: true, // Recommended for a smoother user experience
+            });
+
+            // 2. Event Listener for Apple's official button (if you want to trigger it manually or if `usePopup: false`)
+            // The div with id="appleid-signin" often handles its own click automatically.
+            // However, if you have a custom button or need more control:
+            document
+                .getElementById("my-custom-apple-button")
+                .addEventListener("click", async () => {
+                    try {
+                        // Trigger the Apple sign-in flow
+                        const authorization = await AppleID.auth.signIn();
+                        console.log(
+                            "Apple Sign-in Success (Popup flow):",
+                            authorization,
+                        );
+                        // Send 'authorization.code' and 'authorization.user' to your backend
+                        sendAuthorizationToServer(authorization);
+                    } catch (error) {
+                        console.error(
+                            "Apple Sign-in Failed (Popup flow):",
+                            error,
+                        );
+                        // Handle errors, e.g., user closed the popup
+                    }
+                });
+
+            // 3. Global event listeners for popup flow (these will fire even if you don't manually trigger signIn())
+            document.addEventListener("AppleIDSignInOnSuccess", (event) => {
+                console.log(
+                    "Apple Sign-in Success (Event Listener):",
+                    event.detail,
+                );
+                // event.detail.authorization will contain {code, id_token, state, user}
+                sendAuthorizationToServer(event.detail.authorization);
+            });
+
+            document.addEventListener("AppleIDSignInOnFailure", (error) => {
+                console.error(
+                    "Apple Sign-in Failed (Event Listener):",
+                    error.detail,
+                );
+                // Handle error (e.g., display a message to the user)
+            });
+
+            // Function to send authorization data to your backend
+            async function sendAuthorizationToServer(authorizationData) {
+                console.log(
+                    "Sending authorization to backend:",
+                    authorizationData,
+                );
+                try {
+                    const response = await fetch("/auth/apple/callback", {
+                        // Replace with your actual backend endpoint
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            code: authorizationData.code,
+                            id_token: authorizationData.id_token, // Can also be sent for server validation
+                            state: authorizationData.state,
+                            user: authorizationData.user, // Contains name/email if provided (first time only)
+                        }),
+                    });
+
+                    const serverResponse = await response.json();
+                    console.log("Backend response:", serverResponse);
+
+                    if (response.ok) {
+                        // Assuming your backend sends back a session token or redirect
+                        alert(
+                            "Successfully logged in with Apple! Check console for backend response.",
+                        );
+                        // window.location.href = '/dashboard'; // Redirect user
+                    } else {
+                        alert(
+                            `Login failed on server: ${serverResponse.message || "Unknown error"}`,
+                        );
+                    }
+                } catch (error) {
+                    console.error(
+                        "Error sending authorization to backend:",
+                        error,
+                    );
+                    alert("An error occurred during login. Please try again.");
+                }
+            }
+        </script>
+    </body>
+</html>
