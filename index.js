@@ -47,7 +47,7 @@ app.post("/api/security/apple/callback", async (req, res) => {
       },
       privateKey,
       {
-        algorithm: "ES260", // Apple uses ES256
+        algorithm: "ES256", // Apple uses ES256
         keyid: keyId,
       },
     );
