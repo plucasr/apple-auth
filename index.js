@@ -63,7 +63,7 @@ app.post("/api/security/apple/callback", async (req, res) => {
     params.append("grant_type", "authorization_code");
     params.append(
       "redirect_uri",
-      "https://coach.cbhexp.com/api/security/apple/callback",
+      "https://apple-auth.onrender.com/api/security/apple/callback",
     );
 
     const response = await axios.post(tokenUrl, params, {
